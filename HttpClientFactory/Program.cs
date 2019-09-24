@@ -54,7 +54,10 @@ namespace HttpClientFactory
             // scoped lifetime
 
             // For the CRUD demos
-            serviceCollection.AddScoped<IIntegrationService, CRUDService>();
+            //serviceCollection.AddScoped<IIntegrationService, CRUDService>();
+
+            // For the Stream demos
+            serviceCollection.AddScoped<IIntegrationService, StreamService>();
         }
     }
 }
