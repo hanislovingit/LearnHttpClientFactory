@@ -7,6 +7,7 @@ namespace HttpClientFactory
     public static class Constants
     {
         public const string HttpHeaderAppJson = "application/json";
+        public const string HttpHeaderEncodingGZip = "gzip";
 
     }
 }

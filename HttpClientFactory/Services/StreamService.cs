@@ -13,7 +13,12 @@ namespace HttpClientFactory.Services
 {
     public class StreamService: IIntegrationService
     {
-        private static HttpClient _httpClient = new HttpClient();
+        private static HttpClient _httpClient = new HttpClient(
+            new HttpClientHandler()
+            {
+                AutomaticDecompression = System.Net.DecompressionMethods.GZip
+            });
+
         private int numberOfRequests = 200;
 
         public StreamService()
@@ -31,9 +36,10 @@ namespace HttpClientFactory.Services
             //await TestGetPosterWithoutStream();
             //await PostPosterWithStream();
             //await PostAndReadPosterWithStream();
-            await TestPostPosterWithoutStream();
-            await TestPostPosterWithStream();
-            await TestPostAndReadPosterWithStreams();
+            //await TestPostPosterWithoutStream();
+            //await TestPostPosterWithStream();
+            //await TestPostAndReadPosterWithStreams();
+            await GetPosterWithGZipCompression();
         }
 
         private async Task PostPosterWithStream()
@@ -141,6 +147,23 @@ namespace HttpClientFactory.Services
                 HttpMethod.Get,
                 $"api/movies/d8663e5e-7494-4f81-8739-6e0de1bea7ee/posters/{Guid.NewGuid()}");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(Constants.HttpHeaderAppJson));
+
+            using (var response = await _httpClient.SendAsync(request))
+            {
+                response.EnsureSuccessStatusCode();
+
+                var stream = await response.Content.ReadAsStreamAsync();
+                var poster = stream.ReadAndDeserializeFromJson<Poster>();
+            }
+        }
+
+        private async Task GetPosterWithGZipCompression()
+        {
+            var request = new HttpRequestMessage(
+                HttpMethod.Get,
+                $"api/movies/d8663e5e-7494-4f81-8739-6e0de1bea7ee/posters/{Guid.NewGuid()}");
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(Constants.HttpHeaderAppJson));
+            request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue(Constants.HttpHeaderEncodingGZip));
 
             using (var response = await _httpClient.SendAsync(request))
             {
