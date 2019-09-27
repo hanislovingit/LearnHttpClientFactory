@@ -57,7 +57,10 @@ namespace HttpClientFactory
             //serviceCollection.AddScoped<IIntegrationService, CRUDService>();
 
             // For the Stream demos
-            serviceCollection.AddScoped<IIntegrationService, StreamService>();
+            //serviceCollection.AddScoped<IIntegrationService, StreamService>();
+
+            // for the cancellation token demos
+            serviceCollection.AddScoped<IIntegrationService, CancellationService>();
         }
     }
 }
