@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.IO;
+using System.Text;
 
 namespace HttpClientFactory
 {
@@ -24,6 +25,29 @@ namespace HttpClientFactory
                 {
                     var jsonSerializer = new JsonSerializer();
                     return jsonSerializer.Deserialize<T>(jsonTextReader);
+                }
+            }
+        }
+
+        public static void SerializeToJsonAndWrite<T>(this Stream stream, T objectToWrite)
+        {
+            if (stream == null)
+            {
+                throw new ArgumentNullException(nameof(stream));
+            }
+
+            if (!stream.CanWrite)
+            {
+                throw new NotSupportedException("Can't write to this stream");
+            }
+
+            using (var streamWriter = new StreamWriter(stream, new UTF8Encoding(), 1024, true))
+            {
+                using (var jsonTextWriter = new JsonTextWriter(streamWriter))
+                {
+                    var jsonSerializer = new JsonSerializer();
+                    jsonSerializer.Serialize(jsonTextWriter, objectToWrite);
+                    jsonTextWriter.Flush();
                 }
             }
         }
