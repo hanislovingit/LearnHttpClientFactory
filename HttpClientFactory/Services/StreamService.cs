@@ -6,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using LearnHttpClientFactory.Models;
+using Marvin.StreamExtensions;
 using Newtonsoft.Json;
 
 namespace HttpClientFactory.Services
@@ -28,7 +29,8 @@ namespace HttpClientFactory.Services
             //await TestGetPosterWithStream();
             //await TestGetPosterWithStreamAndCompletionMode();
             //await TestGetPosterWithoutStream();
-            await PostPosterWithStream();
+            //await PostPosterWithStream();
+            await PostAndReadPosterWithStream();
         }
 
         private async Task PostPosterWithStream()
@@ -44,7 +46,7 @@ namespace HttpClientFactory.Services
             };
 
             var memoryContentStream = new MemoryStream();
-            memoryContentStream.SerializeToJsonAndWrite(posterForCreation);
+            memoryContentStream.SerializeToJsonAndWrite(posterForCreation, new UTF8Encoding(), 1024, true);
 
             memoryContentStream.Seek(0, SeekOrigin.Begin);
 
@@ -62,6 +64,42 @@ namespace HttpClientFactory.Services
 
                     var createdContent = await response.Content.ReadAsStringAsync();
                     var createdPoster = JsonConvert.DeserializeObject<Poster>(createdContent);
+                }
+            }
+        }
+
+        private async Task PostAndReadPosterWithStream()
+        {
+            var random = new Random();
+            var generatedBytes = new byte[524288];
+            random.NextBytes(generatedBytes);
+
+            var posterForCreation = new PosterForCreation()
+            {
+                Name = "A new poster for the Big Lebowski",
+                Bytes = generatedBytes
+            };
+
+            var memoryContentStream = new MemoryStream();
+            memoryContentStream.SerializeToJsonAndWrite(posterForCreation, new UTF8Encoding(), 1024, true);
+
+            memoryContentStream.Seek(0, SeekOrigin.Begin);
+
+            using (var request = new HttpRequestMessage(HttpMethod.Post, $"api/movies/d8663e5e-7494-4f81-8739-6e0de1bea7ee/posters"))
+            {
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(Constants.HttpHeaderAppJson));
+
+                using (var streamContent = new StreamContent(memoryContentStream))
+                {
+                    request.Content = streamContent;
+                    request.Content.Headers.ContentType = new MediaTypeHeaderValue(Constants.HttpHeaderAppJson);
+
+                    var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                    response.EnsureSuccessStatusCode();
+
+                    var stream = await response.Content.ReadAsStreamAsync();
+                    var poster = stream.ReadAndDeserializeFromJson<Poster>();
+
                 }
             }
         }
