@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using HttpClientFactory.DelegatingHandlers;
 using HttpClientFactory.Services;
 using HttpClientFactory.TypedClients;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,8 +59,10 @@ namespace HttpClientFactory
                 client.Timeout = new TimeSpan(0, 0, 30);
                 client.DefaultRequestHeaders.Clear();
             })
+            .AddHttpMessageHandler(handler => new RetryPolicyDelegatingHandler(2))
             .ConfigurePrimaryHttpMessageHandler(handler => new HttpClientHandler()
             {
+                // primary http msg handler is always the last one in the pipeline
                 AutomaticDecompression = DecompressionMethods.GZip
             });
 
@@ -81,7 +84,9 @@ namespace HttpClientFactory
             // for the cancellation token demos
             //serviceCollection.AddScoped<IIntegrationService, CancellationService>();
 
-            serviceCollection.AddScoped<IIntegrationService, HttpClientFactoryInstanceMgmtService>();
+            //serviceCollection.AddScoped<IIntegrationService, HttpClientFactoryInstanceMgmtService>();
+
+            serviceCollection.AddScoped<IIntegrationService, HttpHandlersService>();
         }
     }
 }
