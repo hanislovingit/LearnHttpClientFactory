@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using HttpClientFactory.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,8 +51,16 @@ namespace HttpClientFactory
                 loggingBuilder.AddConsole(); // By default the lifetime of the logging service is set to Singleton.
             }).Configure<LoggerFilterOptions>(cfg => cfg.MinLevel = LogLevel.Information);
 
-            serviceCollection.AddHttpClient();
-
+            serviceCollection.AddHttpClient("MoviesClient", client =>
+            {
+                client.BaseAddress = new Uri("http://localhost:57863");
+                client.Timeout = new TimeSpan(0, 0, 30);
+                client.DefaultRequestHeaders.Clear();
+            })
+            .ConfigurePrimaryHttpMessageHandler(handler => new HttpClientHandler()
+            {
+                AutomaticDecompression = DecompressionMethods.GZip
+            });
 
             // register the integration service on our container with a 
             // scoped lifetime
