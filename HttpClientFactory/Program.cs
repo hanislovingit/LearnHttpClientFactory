@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using HttpClientFactory.Services;
+using HttpClientFactory.TypedClients;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
@@ -57,6 +58,12 @@ namespace HttpClientFactory
                 client.Timeout = new TimeSpan(0, 0, 30);
                 client.DefaultRequestHeaders.Clear();
             })
+            .ConfigurePrimaryHttpMessageHandler(handler => new HttpClientHandler()
+            {
+                AutomaticDecompression = DecompressionMethods.GZip
+            });
+
+            serviceCollection.AddHttpClient<MoviesClient>()
             .ConfigurePrimaryHttpMessageHandler(handler => new HttpClientHandler()
             {
                 AutomaticDecompression = DecompressionMethods.GZip
