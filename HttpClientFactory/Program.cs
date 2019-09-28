@@ -49,6 +49,8 @@ namespace HttpClientFactory
                 loggingBuilder.AddConsole(); // By default the lifetime of the logging service is set to Singleton.
             }).Configure<LoggerFilterOptions>(cfg => cfg.MinLevel = LogLevel.Information);
 
+            serviceCollection.AddHttpClient();
+
 
             // register the integration service on our container with a 
             // scoped lifetime
@@ -60,7 +62,9 @@ namespace HttpClientFactory
             //serviceCollection.AddScoped<IIntegrationService, StreamService>();
 
             // for the cancellation token demos
-            serviceCollection.AddScoped<IIntegrationService, CancellationService>();
+            //serviceCollection.AddScoped<IIntegrationService, CancellationService>();
+
+            serviceCollection.AddScoped<IIntegrationService, HttpClientFactoryInstanceMgmtService>();
         }
     }
 }
