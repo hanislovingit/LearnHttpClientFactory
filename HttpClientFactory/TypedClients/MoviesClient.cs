@@ -7,6 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using LearnHttpClientFactory.Models;
 using Marvin.StreamExtensions;
+using Polly;
+using Polly.Retry;
 
 namespace HttpClientFactory.TypedClients
 {
@@ -33,10 +35,8 @@ namespace HttpClientFactory.TypedClients
                 "api/movies");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(Constants.HttpHeaderAppJson));
             request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue(Constants.HttpHeaderEncodingGZip));
-
-            using (var response = await _client.SendAsync(request,
-                HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken))
+            
+            using (var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
             {
                 var stream = await response.Content.ReadAsStreamAsync();
                 response.EnsureSuccessStatusCode();

@@ -17,6 +17,8 @@ namespace Movies.API.Controllers
         private readonly IMoviesRepository _moviesRepository;
         private readonly IMapper _mapper;
 
+        private static int _requestCount = 0;
+
         public MoviesController(IMoviesRepository moviesRepository, 
             IMapper mapper)
         {
@@ -27,8 +29,16 @@ namespace Movies.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Models.Movie>>> GetMovies()
         {
-            var movieEntities = await _moviesRepository.GetMoviesAsync();
-            return Ok(_mapper.Map<IEnumerable<Models.Movie>>(movieEntities));
+            await Task.Delay(100); // simulate processing
+            _requestCount++;
+
+            if (_requestCount % 4 == 0) // only one out of 4 requests will succeed
+            {
+                var movieEntities = await _moviesRepository.GetMoviesAsync();
+                return Ok(_mapper.Map<IEnumerable<Models.Movie>>(movieEntities));
+            }
+
+            return Unauthorized();
         }
 
         

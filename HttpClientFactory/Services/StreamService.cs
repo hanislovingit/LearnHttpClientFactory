@@ -1,13 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using LearnHttpClientFactory.Models;
 using Marvin.StreamExtensions;
 using Newtonsoft.Json;
+using Polly;
+using Polly.Retry;
 
 namespace HttpClientFactory.Services
 {
@@ -19,6 +23,9 @@ namespace HttpClientFactory.Services
                 AutomaticDecompression = System.Net.DecompressionMethods.GZip
             });
 
+        private readonly AsyncRetryPolicy<HttpResponseMessage> _httpRetryPolicy;
+
+
         private int numberOfRequests = 200;
 
         public StreamService()
@@ -27,6 +34,9 @@ namespace HttpClientFactory.Services
             _httpClient.BaseAddress = new Uri("http://localhost:57863");
             _httpClient.Timeout = new TimeSpan(0, 0, 30);
             _httpClient.DefaultRequestHeaders.Clear();
+
+            _httpRetryPolicy = Policy.HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode).RetryAsync(3);
+
         }
 
         public async Task Run()
@@ -39,7 +49,8 @@ namespace HttpClientFactory.Services
             //await TestPostPosterWithoutStream();
             //await TestPostPosterWithStream();
             //await TestPostAndReadPosterWithStreams();
-            await GetPosterWithGZipCompression();
+            //await GetPosterWithGZipCompression();
+            var movies = await GetMovies(CancellationToken.None);
         }
 
         private async Task PostPosterWithStream()
@@ -174,6 +185,24 @@ namespace HttpClientFactory.Services
             }
         }
 
+        public async Task<IEnumerable<Movie>> GetMovies(CancellationToken cancellationToken)
+        {
+            var request = new HttpRequestMessage(
+                HttpMethod.Get,
+                "api/movies");
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(Constants.HttpHeaderAppJson));
+            request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue(Constants.HttpHeaderEncodingGZip));
+
+            using (var response = await _httpRetryPolicy.ExecuteAsync(
+                () => _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)))
+            {
+                var stream = await response.Content.ReadAsStreamAsync();
+                response.EnsureSuccessStatusCode();
+                var movies = stream.ReadAndDeserializeFromJson<List<Movie>>();
+                return movies;
+            }
+        }
+
         private async Task GetPosterWithStreamAndCompletionMode()
         {
             var request = new HttpRequestMessage(
@@ -241,8 +270,7 @@ namespace HttpClientFactory.Services
                               $"{stopWatch.ElapsedMilliseconds}, " +
                               $"averaging {stopWatch.ElapsedMilliseconds / numberOfRequests} milliseconds/request");
         }
-
-
+        
         private async Task TestGetPosterWithStreamAndCompletionMode()
         {
             // warmup
@@ -284,8 +312,7 @@ namespace HttpClientFactory.Services
                 $"{stopWatch.ElapsedMilliseconds}, " +
                 $"averaging {stopWatch.ElapsedMilliseconds / 200} milliseconds/request");
         }
-
-
+        
         private async Task TestPostPosterWithStream()
         {
             // warmup
@@ -306,7 +333,6 @@ namespace HttpClientFactory.Services
                 $"{stopWatch.ElapsedMilliseconds}, " +
                 $"averaging {stopWatch.ElapsedMilliseconds / 200} milliseconds/request");
         }
-
 
         private async Task TestPostAndReadPosterWithStreams()
         {
